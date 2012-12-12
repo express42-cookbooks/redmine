@@ -70,7 +70,7 @@ template "/srv/redmine-#{node[:redmine][:version]}/config/database.yml" do
   mode "0664"
 end
 
-execute "rake db:migrate RAILS_ENV='production'" do
+execute "rake db:reset RAILS_ENV='production'" do
   user node[:apache][:user]
   cwd "/srv/redmine-#{node[:redmine][:version]}"
   not_if { ::File.exists?("/srv/redmine-#{node[:redmine][:version]}/db/schema.rb") }
