@@ -23,6 +23,8 @@ include_recipe "apache2"
 include_recipe "apache2::mod_rewrite"
 include_recipe "passenger_apache2::mod_rails"
 
+execute "apt-get install imagemagick libmagickwand-dev"
+
 bash "install_redmine" do
   cwd "/srv"
   user "root"
@@ -36,6 +38,10 @@ end
 
 link "/srv/redmine" do
   to "/srv/redmine-#{node[:redmine][:version]}"
+end
+
+execute "rake generate_secret_token" do 
+  cwd "/srv/redmine"
 end
 
 case node[:redmine][:db][:type]
@@ -60,7 +66,6 @@ template "/srv/redmine-#{node[:redmine][:version]}/config/database.yml" do
 end
 
 execute "rake db:migrate RAILS_ENV='production'" do
-  gem_package "rdoc"
   user node[:apache][:user]
   cwd "/srv/redmine-#{node[:redmine][:version]}"
   not_if { ::File.exists?("/srv/redmine-#{node[:redmine][:version]}/db/schema.rb") }
