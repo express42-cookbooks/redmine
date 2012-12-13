@@ -28,7 +28,7 @@ execute "disable-default-site" do
   notifies :reload, resources(:service => "apache2"), :delayed
 end
 
-execute "apt-get install imagemagick libmagickwand-dev"
+execute "sudo apt-get --yes install imagemagick libmagickwand-dev"
 
 bash "install_redmine" do
   cwd "/srv"
@@ -70,7 +70,7 @@ template "/srv/redmine-#{node[:redmine][:version]}/config/database.yml" do
   mode "0664"
 end
 
-execute "rake db:reset RAILS_ENV='production'" do
+execute "rake db:create db:migrate RAILS_ENV='production'" do
   user node[:apache][:user]
   cwd "/srv/redmine-#{node[:redmine][:version]}"
   not_if { ::File.exists?("/srv/redmine-#{node[:redmine][:version]}/db/schema.rb") }

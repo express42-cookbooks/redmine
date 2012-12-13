@@ -9,13 +9,6 @@ Vagrant::Config.run do |config|
   config.vm.forward_port 80, 8080
 
   config.vm.provision :chef_solo do |chef|
-    chef.cookbooks_path = ["cookbooks"]
-    chef.add_recipe "apache2"
-    chef.add_recipe "rvm"
-    chef.add_recipe "rails"
-    chef.add_recipe "redmine"
-    chef.add_recipe "mysql"
-    chef.add_recipe "mysql::server"
     chef.json = {
         :mysql => {
             :server_root_password => 'banana',
@@ -31,5 +24,13 @@ Vagrant::Config.run do |config|
           }
         }
     }
+    chef.cookbooks_path = ["cookbooks"]
+    chef.add_recipe "apt"
+    chef.add_recipe "apache2"
+    chef.add_recipe "mysql"
+    chef.add_recipe "mysql::server"
+    chef.add_recipe "rvm"
+    chef.add_recipe "rails"
+    chef.add_recipe "redmine"
   end
 end
