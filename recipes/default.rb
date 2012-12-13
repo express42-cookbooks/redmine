@@ -45,6 +45,10 @@ link "/srv/redmine" do
   to "/srv/redmine-#{node[:redmine][:version]}"
 end
 
+execute "bundle install" do 
+  cwd "/srv/redmine"
+end
+
 execute "rake generate_secret_token" do 
   cwd "/srv/redmine"
 end
