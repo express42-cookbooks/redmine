@@ -44,6 +44,8 @@ You'll probably want to customize it to fit your environment, as a site-cookbook
 Author:: Joshua Timberman (<joshua@opscode.com>)
 Copyright:: 2009, Opscode, Inc.
 
+Updated by Agency Republic in December 2012 for use with Redmine 2.x
+
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
