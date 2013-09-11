@@ -23,14 +23,15 @@ while pw.length < 20
   pw << OpenSSL::Random.random_bytes(1).gsub(/\W/, '')
 end
 
-#database_server = search(:node, "database_master:true").map {|n| n['fqdn']}.first
-
 set[:redmine][:dir] = "/srv/redmine-#{redmine[:version]}"
 
 default[:redmine][:dl_id]   = "76589"
 default[:redmine][:version] = "2.1.4"
 
-default[:redmine][:db][:type]     = "sqlite"
+default[:redmine][:db][:type]     = "postgresql"
 default[:redmine][:db][:user]     = "redmine"
 default[:redmine][:db][:password] = pw
 default[:redmine][:db][:hostname] = "localhost"
+default[:redmine][:user]          = "redmine"
+default[:redmine][:ruby_version]  = "1.9.3-p448"
+

@@ -18,17 +18,23 @@
 # limitations under the License.
 #
 
-include_recipe "rails"
-include_recipe "apache2"
-include_recipe "apache2::mod_rewrite"
-include_recipe "passenger_apache2::mod_rails"
+user = node[:redmine][:user]
 
-execute "disable-default-site" do
-  command "sudo a2dissite default"
-  notifies :reload, resources(:service => "apache2"), :delayed
+%w(libpq5 libpq-dev imagemagick libmagickwand-dev).each { |p| package p }
+
+user user do
+  supports :manage_home => true
+  shell "/bin/bash"
+  home "/home/#{user}"
 end
 
-execute "sudo apt-get --yes install imagemagick libmagickwand-dev"
+ruby_install node[:redmine][:ruby_version] do
+  action :install
+end
+
+ruby_set node[:redmine][:ruby_version] do
+  username user
+end
 
 bash "install_redmine" do
   cwd "/srv"
@@ -36,7 +42,7 @@ bash "install_redmine" do
   code <<-EOH
     wget http://rubyforge.org/frs/download.php/#{node[:redmine][:dl_id]}/redmine-#{node[:redmine][:version]}.tar.gz
     tar xf redmine-#{node[:redmine][:version]}.tar.gz
-    chown -R #{node[:apache][:user]} redmine-#{node[:redmine][:version]}
+    chown -R #{user} redmine-#{node[:redmine][:version]}
   EOH
   not_if { ::File.exists?("/srv/redmine-#{node[:redmine][:version]}/Rakefile") }
 end
@@ -45,25 +51,18 @@ link "/srv/redmine" do
   to "/srv/redmine-#{node[:redmine][:version]}"
 end
 
-execute "bundle install" do 
+template "/srv/redmine/Gemfile"
+
+execute "/opt/chruby/bin/chruby-exec #{node[:redmine][:ruby_version]} -- bundle install" do
+  user user
   cwd "/srv/redmine"
+  environment "HOME" => "/home/#{user}"
 end
 
-execute "rake generate_secret_token" do 
+execute "/opt/chruby/bin/chruby-exec #{node[:redmine][:ruby_version]} -- rake generate_secret_token" do
+  user user
+  environment "HOME" => "/home/#{user}"
   cwd "/srv/redmine"
-end
-
-case node[:redmine][:db][:type]
-when "sqlite"
-  include_recipe "sqlite"
-  gem_package "sqlite3-ruby"
-  file "/srv/redmine-#{node[:redmine][:version]}/db/production.db" do
-    owner node[:apache][:user]
-    group node[:apache][:user]
-    mode "0644"
-  end
-when "mysql"
-  include_recipe "mysql::client"
 end
 
 template "/srv/redmine-#{node[:redmine][:version]}/config/database.yml" do
@@ -74,16 +73,58 @@ template "/srv/redmine-#{node[:redmine][:version]}/config/database.yml" do
   mode "0664"
 end
 
-execute "rake db:create db:migrate RAILS_ENV='production'" do
-  user node[:apache][:user]
+sysctl(
+  "kernel.msgmax" => "65536",
+  "kernel.shmall" => "4294967296",
+  "kernel.shmmax" => "68719476736",
+  "kernel.msgmnb" => "65536",
+  "vm.swappiness" => "0",
+  "vm.overcommit_memory" => "0",
+  "fs.file-max" => "1048576"
+)
+
+postgresql "main" do
+  databag "db"
+  configuration(
+    :version => "9.1",
+    :resources => {
+      :shared_buffers       => "32MB",
+      :max_connections      => 10
+    }
+  )
+  hba_configuration(
+    [
+      { :type => "host", :database => "all", :user => "all", :address => "127.0.0.1/32", :method => "trust" },
+    ]
+  )
+end
+
+execute "/opt/chruby/bin/chruby-exec #{node[:redmine][:ruby_version]} -- rake db:create db:migrate RAILS_ENV='production'" do
+  user user
+  environment "HOME" => "/home/#{user}"
   cwd "/srv/redmine-#{node[:redmine][:version]}"
   not_if { ::File.exists?("/srv/redmine-#{node[:redmine][:version]}/db/schema.rb") }
 end
 
-web_app "redmine" do
-  docroot "/srv/redmine/public"
-  template "redmine.conf.erb"
-  server_name "redmine.#{node[:domain]}"
-  server_aliases [ "redmine", node[:hostname] ]
-  rails_env "production"
+template "/srv/redmine/config/unicorn.rb" do
+  source 'unicorn.rb.erb'
+  owner user
+  group user
+  variables(
+    :application_directory => "/srv/redmine",
+    :listen => "*:8080",
+    :worker_processes_num => 2,
+    :user => user,
+    :timeout => 180
+  )
+end
+
+runit_service "#{user}_rails" do
+  run_restart false
+  template_name "redmine"
+  options :home_path => "/home/#{user}",
+          :app_path => "/srv/redmine",
+          :target_user => user,
+          :target_ruby => 'default',
+          :target_env => 'production'
 end
