@@ -31,7 +31,7 @@ default[:redmine][:version] = "2.1.4"
 default[:redmine][:db][:type]     = "postgresql"
 default[:redmine][:db][:user]     = "redmine"
 default[:redmine][:db][:password] = pw
-default[:redmine][:db][:hostname] = "localhost"
+default[:redmine][:db][:hostname] = "redmine"
 default[:redmine][:user]          = "redmine"
 default[:redmine][:ruby_version]  = "1.9.3-p448"
 
