@@ -89,7 +89,7 @@ postgresql "main" do
     :version => "9.1",
     :resources => {
       :shared_buffers       => "32MB",
-      :max_connections      => 10
+      :max_connections      => node[:redmine][:pgsql_conn]
     }
   )
   hba_configuration(
@@ -113,7 +113,7 @@ template "/srv/redmine/config/unicorn.rb" do
   variables(
     :application_directory => "/srv/redmine",
     :listen => "*:8080",
-    :worker_processes_num => 2,
+    :worker_processes_num => node[:redmine][:unucorn_proc],
     :user => user,
     :timeout => 180
   )

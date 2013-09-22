@@ -34,4 +34,6 @@ default[:redmine][:db][:password] = pw
 default[:redmine][:db][:hostname] = "localhost"
 default[:redmine][:user]          = "redmine"
 default[:redmine][:ruby_version]  = "1.9.3-p448"
+default[:redmine][:unucorn_proc]  = 2
+default[:redmine][:pgsql_conn]    = 50
 
